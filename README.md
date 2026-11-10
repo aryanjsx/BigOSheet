@@ -8,10 +8,12 @@ A blog for coding and DSA explained in plain English, with accounts, a personal 
 
 ```bash
 npm install
-cp .env.example .env.local   # set ADMIN_PASSWORD, and DATABASE_URL (see below)
+cp .env.example .env.local   # on Windows PowerShell, use: Copy-Item .env.example .env.local
 npm run db:local             # terminal 1: throwaway local Postgres, no install needed
 npm run dev                  # terminal 2
 ```
+
+After copying the example, edit `.env.local` and set `ADMIN_PASSWORD`. For local development, set `DATABASE_URL` to the URL printed by `npm run db:local`. The local PGlite server must keep running in terminal 1 while the app is in use.
 
 For local development use `DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres`. Tables, the admin account and three sample articles are created automatically on the first request.
 
@@ -55,15 +57,3 @@ Deleting a user cascades to their sessions, saves and history. Deleting a post c
 - That account is created at startup from `ADMIN_PASSWORD` and **cannot be claimed through the signup form**. Without this, anyone could register that email first and become admin, because emails are not verified.
 - `/admin/*` pages and every admin server action call `requireAdmin()` on their own. Hiding a button is never the only protection.
 - Admins cannot delete themselves or other admins.
-
-## Deploying on Vercel
-
-1. Create a Postgres database (Neon through the Vercel Marketplace is the quickest) and copy its **pooled** connection string.
-2. Import the repo in Vercel and add these environment variables (Settings → Environment Variables):
-   - `DATABASE_URL`: the connection string
-   - `ADMIN_EMAIL`: `kumararyan1929@gmail.com`
-   - `ADMIN_PASSWORD`: a long random password. This is what you log in with as admin.
-   - `SITE_URL`: your production URL
-3. Deploy. The first request creates the tables and the admin account.
-
-Never commit `.env.local`. To change the admin password later, change `ADMIN_PASSWORD` and redeploy.

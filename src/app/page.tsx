@@ -12,7 +12,7 @@ export default async function Home() {
       <section className="hero">
         <div className="container">
           <p className="eyebrow">Coding, minus the confusion</p>
-          <h1>Learn how computers think, <span className="accent">in plain English.</span></h1>
+          <h1>Learn how computers think</h1>
           <p className="lead">
             Short, friendly articles on data structures, algorithms and everyday tech. Explained with
             real-life examples, so you never need a computer science degree to follow along.

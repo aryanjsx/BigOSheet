@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="container footer-grid">
         <div>
-          <p className="brand"><span className="brand-mark" aria-hidden="true">O(n)</span> BigOSheet</p>
+          <p className="brand"><span className="brand-word">BigO<em>Sheet</em></span></p>
           <p className="muted footer-blurb">
             Coding and data structures, explained so that anyone can follow along. No jargon required.
           </p>

@@ -11,7 +11,7 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: 
 export default async function EditPost({ params, searchParams }: Props) {
   await requireAdmin();
   const id = Number((await params).id);
-  const post = Number.isInteger(id) ? getPostById(id) : null;
+  const post = Number.isInteger(id) ? await getPostById(id) : null;
   if (!post) notFound();
   const { saved } = await searchParams;
 

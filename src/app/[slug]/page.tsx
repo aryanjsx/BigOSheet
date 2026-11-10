@@ -12,14 +12,14 @@ import { LEVEL_LABEL, getPostBySlug, isSaved, relatedPosts } from "@/lib/posts";
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = getPostBySlug((await params).slug);
+  const post = await getPostBySlug((await params).slug);
   if (!post || post.status !== "published") return {};
   return { title: post.title, description: post.excerpt || post.tldr };
 }
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlug(slug);
   const user = await getUser();
   const isAdmin = user?.role === "admin";
 
@@ -27,8 +27,8 @@ export default async function ArticlePage({ params }: Props) {
   if (!post || (post.status !== "published" && !isAdmin)) notFound();
 
   const html = renderMarkdown(post.content);
-  const saved = user ? isSaved(user.id, post.id) : false;
-  const related = relatedPosts(post);
+  const saved = user ? await isSaved(user.id, post.id) : false;
+  const related = await relatedPosts(post);
 
   return (
     <article className="container article">

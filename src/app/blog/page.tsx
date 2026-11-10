@@ -7,8 +7,8 @@ export const metadata = { title: "Articles" };
 export default async function Blog({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string }> }) {
   const { q = "", tag = "" } = await searchParams;
   const query = q.trim().slice(0, 100);
-  const posts = listPublished({ q: query || undefined, tag: tag || undefined });
-  const tags = listTags();
+  const posts = await listPublished({ q: query || undefined, tag: tag || undefined });
+  const tags = await listTags();
 
   return (
     <div className="container section">

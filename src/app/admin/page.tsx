@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 
 export default async function AdminPosts() {
   await requireAdmin();
-  const posts = listAllForAdmin();
+  const posts = await listAllForAdmin();
   return (
     <>
       <h1>Posts</h1>

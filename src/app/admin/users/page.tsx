@@ -1,21 +1,12 @@
 import { requireAdmin } from "@/lib/auth";
 import ConfirmButton from "@/components/ConfirmButton";
 import { deleteUserAction } from "@/actions/admin";
-import { db } from "@/lib/db";
+import { listUsers } from "@/lib/users";
 import { formatDate } from "@/lib/format";
-
-type Row = { id: number; name: string; email: string; role: string; created_at: string; saved: number; reads: number };
 
 export default async function AdminUsers() {
   await requireAdmin();
-  const users = db
-    .prepare(
-      `SELECT u.id, u.name, u.email, u.role, u.created_at,
-         (SELECT COUNT(*) FROM bookmarks b WHERE b.user_id = u.id) AS saved,
-         (SELECT COUNT(*) FROM reading_history h WHERE h.user_id = u.id) AS reads
-       FROM users u ORDER BY u.created_at DESC`,
-    )
-    .all() as Row[];
+  const users = await listUsers();
 
   return (
     <>
@@ -31,7 +22,7 @@ export default async function AdminUsers() {
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td><span className={`chip ${u.role === "admin" ? "chip-live" : ""}`}>{u.role}</span></td>
-                <td>{formatDate(u.created_at)}</td>
+                <td>{formatDate(u.createdAt)}</td>
                 <td>{u.saved}</td>
                 <td>{u.reads}</td>
                 <td className="actions">

@@ -11,8 +11,8 @@ export const metadata = { title: "My library" };
 export default async function Library({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const user = await requireUser("/library");
   const tab = (await searchParams).tab === "history" ? "history" : "saved";
-  const saved = listSaved(user.id);
-  const history = listHistory(user.id);
+  const saved = await listSaved(user.id);
+  const history = await listHistory(user.id);
   const items = tab === "saved" ? saved : history;
 
   return (

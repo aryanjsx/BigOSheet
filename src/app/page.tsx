@@ -4,7 +4,7 @@ import { listPublished, listTags } from "@/lib/posts";
 import { getUser } from "@/lib/auth";
 
 export default async function Home() {
-  const [posts, tags, user] = [listPublished({ limit: 6 }), listTags(), await getUser()];
+  const [posts, tags, user] = await Promise.all([listPublished({ limit: 6 }), listTags(), getUser()]);
   return (
     <>
       <section className="hero">

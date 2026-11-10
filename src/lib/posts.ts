@@ -1,5 +1,6 @@
 import "server-only";
-import { db } from "./db";
+import postgres from "postgres";
+import { db, type Sql } from "./db";
 import { readingMinutes } from "./markdown";
 import { uniqueSlug } from "./slug";
 
@@ -28,36 +29,33 @@ export type Post = {
   tags: string[];
 };
 
-type Row = Record<string, unknown>;
+type Row = postgres.Row;
 
-const SELECT = `
-  SELECT p.*, u.name AS author_name FROM posts p
-  LEFT JOIN users u ON u.id = p.author_id`;
+const base = (sql: Sql) =>
+  sql`SELECT p.*, u.name AS author_name FROM posts p LEFT JOIN users u ON u.id = p.author_id`;
 
-function withTags(rows: Row[]): Post[] {
+async function withTags(sql: Sql, rows: Row[]): Promise<Post[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id as number);
-  const tagRows = db
-    .prepare(`SELECT post_id, tag FROM post_tags WHERE post_id IN (${ids.map(() => "?").join(",")}) ORDER BY tag`)
-    .all(...ids) as { post_id: number; tag: string }[];
+  const tagRows = await sql`SELECT post_id, tag FROM post_tags WHERE post_id IN ${sql(ids)} ORDER BY tag`;
   const byPost = new Map<number, string[]>();
   for (const t of tagRows) byPost.set(t.post_id, [...(byPost.get(t.post_id) ?? []), t.tag]);
   return rows.map((r) => ({
-    id: r.id as number,
-    slug: r.slug as string,
-    title: r.title as string,
-    excerpt: r.excerpt as string,
-    tldr: r.tldr as string,
-    content: r.content as string,
-    emoji: r.emoji as string,
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    excerpt: r.excerpt,
+    tldr: r.tldr,
+    content: r.content,
+    emoji: r.emoji,
     level: r.level as Level,
     status: r.status as Post["status"],
-    authorName: (r.author_name as string | null) ?? null,
-    readingMinutes: r.reading_minutes as number,
-    createdAt: r.created_at as string,
-    updatedAt: r.updated_at as string,
-    publishedAt: (r.published_at as string | null) ?? null,
-    tags: byPost.get(r.id as number) ?? [],
+    authorName: r.author_name ?? null,
+    readingMinutes: r.reading_minutes,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    publishedAt: r.published_at ?? null,
+    tags: byPost.get(r.id) ?? [],
   }));
 }
 
@@ -72,54 +70,49 @@ export function normalizeTags(input: string): string[] {
 
 /* ---------- public reads ---------- */
 
-export function listPublished(opts: { q?: string; tag?: string; limit?: number } = {}): Post[] {
-  const where = ["p.status = 'published'"];
-  const params: (string | number)[] = [];
-  if (opts.q) {
-    where.push("(p.title LIKE ? ESCAPE '\\' OR p.excerpt LIKE ? ESCAPE '\\' OR p.content LIKE ? ESCAPE '\\')");
-    const like = `%${opts.q.replace(/[\\%_]/g, "\\$&")}%`;
-    params.push(like, like, like);
-  }
-  if (opts.tag) {
-    where.push("EXISTS (SELECT 1 FROM post_tags t WHERE t.post_id = p.id AND t.tag = ?)");
-    params.push(opts.tag);
-  }
-  const rows = db
-    .prepare(`${SELECT} WHERE ${where.join(" AND ")} ORDER BY p.published_at DESC LIMIT ?`)
-    .all(...params, opts.limit ?? 100) as Row[];
-  return withTags(rows);
+export async function listPublished(opts: { q?: string; tag?: string; limit?: number } = {}): Promise<Post[]> {
+  const sql = await db();
+  const like = opts.q ? `%${opts.q.replace(/[\\%_]/g, "\\$&")}%` : null;
+  const rows = await sql`
+    ${base(sql)}
+    WHERE p.status = 'published'
+    ${like ? sql`AND (p.title ILIKE ${like} OR p.excerpt ILIKE ${like} OR p.content ILIKE ${like})` : sql``}
+    ${opts.tag ? sql`AND EXISTS (SELECT 1 FROM post_tags t WHERE t.post_id = p.id AND t.tag = ${opts.tag})` : sql``}
+    ORDER BY p.published_at DESC
+    LIMIT ${opts.limit ?? 100}`;
+  return withTags(sql, rows);
 }
 
-export function listTags(): { tag: string; count: number }[] {
-  return db
-    .prepare(
-      `SELECT t.tag, COUNT(*) AS count FROM post_tags t
-       JOIN posts p ON p.id = t.post_id AND p.status = 'published'
-       GROUP BY t.tag ORDER BY count DESC, t.tag LIMIT 30`,
-    )
-    .all() as { tag: string; count: number }[];
+export async function listTags(): Promise<{ tag: string; count: number }[]> {
+  const sql = await db();
+  const rows = await sql`
+    SELECT t.tag, COUNT(*)::int AS count FROM post_tags t
+    JOIN posts p ON p.id = t.post_id AND p.status = 'published'
+    GROUP BY t.tag ORDER BY count DESC, t.tag LIMIT 30`;
+  return rows.map((r) => ({ tag: r.tag, count: r.count }));
 }
 
-export function getPostBySlug(slug: string): Post | null {
-  const row = db.prepare(`${SELECT} WHERE p.slug = ?`).get(slug) as Row | undefined;
-  return row ? withTags([row])[0] : null;
+export async function getPostBySlug(slug: string): Promise<Post | null> {
+  const sql = await db();
+  const rows = await sql`${base(sql)} WHERE p.slug = ${slug}`;
+  return (await withTags(sql, rows))[0] ?? null;
 }
 
-export function getPostById(id: number): Post | null {
-  const row = db.prepare(`${SELECT} WHERE p.id = ?`).get(id) as Row | undefined;
-  return row ? withTags([row])[0] : null;
+export async function getPostById(id: number): Promise<Post | null> {
+  const sql = await db();
+  const rows = await sql`${base(sql)} WHERE p.id = ${id}`;
+  return (await withTags(sql, rows))[0] ?? null;
 }
 
-export function relatedPosts(post: Post, limit = 3): Post[] {
+export async function relatedPosts(post: Post, limit = 3): Promise<Post[]> {
   if (post.tags.length === 0) return [];
-  const rows = db
-    .prepare(
-      `${SELECT} WHERE p.status = 'published' AND p.id != ?
-       AND EXISTS (SELECT 1 FROM post_tags t WHERE t.post_id = p.id AND t.tag IN (${post.tags.map(() => "?").join(",")}))
-       ORDER BY p.published_at DESC LIMIT ?`,
-    )
-    .all(post.id, ...post.tags, limit) as Row[];
-  return withTags(rows);
+  const sql = await db();
+  const rows = await sql`
+    ${base(sql)}
+    WHERE p.status = 'published' AND p.id != ${post.id}
+    AND EXISTS (SELECT 1 FROM post_tags t WHERE t.post_id = p.id AND t.tag IN ${sql(post.tags)})
+    ORDER BY p.published_at DESC LIMIT ${limit}`;
+  return withTags(sql, rows);
 }
 
 /* ---------- admin writes ---------- */
@@ -135,115 +128,119 @@ export type PostInput = {
   status: "draft" | "published";
 };
 
-export function listAllForAdmin(): Post[] {
-  return withTags(db.prepare(`${SELECT} ORDER BY p.updated_at DESC`).all() as Row[]);
+export async function listAllForAdmin(): Promise<Post[]> {
+  const sql = await db();
+  return withTags(sql, await sql`${base(sql)} ORDER BY p.updated_at DESC`);
 }
 
-const slugTaken = (excludeId?: number) => (slug: string) =>
-  !!db.prepare("SELECT 1 FROM posts WHERE slug = ? AND id != ?").get(slug, excludeId ?? -1);
-
-function setTags(postId: number, tags: string[]) {
-  db.prepare("DELETE FROM post_tags WHERE post_id = ?").run(postId);
-  const ins = db.prepare("INSERT OR IGNORE INTO post_tags (post_id, tag) VALUES (?, ?)");
-  for (const t of tags) ins.run(postId, t);
-}
-
-export function createPost(authorId: number, input: PostInput): Post {
-  const now = new Date().toISOString();
-  const slug = uniqueSlug(input.title, slugTaken());
-  const res = db
-    .prepare(
-      `INSERT INTO posts (slug, title, excerpt, tldr, content, emoji, level, status, author_id, reading_minutes, created_at, updated_at, published_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
-      slug, input.title, input.excerpt, input.tldr, input.content, input.emoji, input.level,
-      input.status, authorId, readingMinutes(input.content), now, now,
-      input.status === "published" ? now : null,
-    );
-  const id = Number(res.lastInsertRowid);
-  setTags(id, input.tags);
-  return getPostById(id)!;
-}
-
-export function updatePost(id: number, input: PostInput): Post | null {
-  const existing = getPostById(id);
-  if (!existing) return null;
-  const now = new Date().toISOString();
-  // Published URLs stay stable so shared links never break. Drafts follow the title.
-  const slug =
-    existing.status === "published" || existing.publishedAt
-      ? existing.slug
-      : uniqueSlug(input.title, slugTaken(id));
-  const publishedAt =
-    input.status === "published" ? existing.publishedAt ?? now : existing.publishedAt;
-  db.prepare(
-    `UPDATE posts SET slug = ?, title = ?, excerpt = ?, tldr = ?, content = ?, emoji = ?, level = ?,
-       status = ?, reading_minutes = ?, updated_at = ?, published_at = ? WHERE id = ?`,
-  ).run(
-    slug, input.title, input.excerpt, input.tldr, input.content, input.emoji, input.level,
-    input.status, readingMinutes(input.content), now, publishedAt, id,
+async function pickSlug(sql: Sql, title: string, excludeId = -1): Promise<string> {
+  const taken = new Set(
+    (await sql`SELECT slug FROM posts WHERE id != ${excludeId}`).map((r) => r.slug as string),
   );
-  setTags(id, input.tags);
+  return uniqueSlug(title, (s) => taken.has(s));
+}
+
+async function setTags(tx: Sql, postId: number, tags: string[]) {
+  await tx`DELETE FROM post_tags WHERE post_id = ${postId}`;
+  for (const t of tags) await tx`INSERT INTO post_tags (post_id, tag) VALUES (${postId}, ${t}) ON CONFLICT DO NOTHING`;
+}
+
+export async function createPost(authorId: number, input: PostInput): Promise<Post> {
+  const sql = await db();
+  const now = new Date().toISOString();
+  const id = await sql.begin(async (tx) => {
+    const t = tx as unknown as Sql;
+    const slug = await pickSlug(t, input.title);
+    const [row] = await t`
+      INSERT INTO posts (slug, title, excerpt, tldr, content, emoji, level, status, author_id, reading_minutes, created_at, updated_at, published_at)
+      VALUES (${slug}, ${input.title}, ${input.excerpt}, ${input.tldr}, ${input.content}, ${input.emoji}, ${input.level},
+              ${input.status}, ${authorId}, ${readingMinutes(input.content)}, ${now}, ${now},
+              ${input.status === "published" ? now : null})
+      RETURNING id`;
+    await setTags(t, row.id, input.tags);
+    return row.id as number;
+  });
+  return (await getPostById(id))!;
+}
+
+export async function updatePost(id: number, input: PostInput): Promise<Post | null> {
+  const existing = await getPostById(id);
+  if (!existing) return null;
+  const sql = await db();
+  const now = new Date().toISOString();
+  await sql.begin(async (tx) => {
+    const t = tx as unknown as Sql;
+    // Published URLs stay stable so shared links never break. Drafts follow the title.
+    const slug =
+      existing.status === "published" || existing.publishedAt
+        ? existing.slug
+        : await pickSlug(t, input.title, id);
+    const publishedAt = input.status === "published" ? existing.publishedAt ?? now : existing.publishedAt;
+    await t`
+      UPDATE posts SET slug = ${slug}, title = ${input.title}, excerpt = ${input.excerpt}, tldr = ${input.tldr},
+        content = ${input.content}, emoji = ${input.emoji}, level = ${input.level}, status = ${input.status},
+        reading_minutes = ${readingMinutes(input.content)}, updated_at = ${now}, published_at = ${publishedAt}
+      WHERE id = ${id}`;
+    await setTags(t, id, input.tags);
+  });
   return getPostById(id);
 }
 
-export function deletePost(id: number) {
-  db.prepare("DELETE FROM posts WHERE id = ?").run(id);
+export async function deletePost(id: number) {
+  const sql = await db();
+  await sql`DELETE FROM posts WHERE id = ${id}`;
 }
 
 /* ---------- per-user: saved + history ---------- */
 
-export function isSaved(userId: number, postId: number): boolean {
-  return !!db.prepare("SELECT 1 FROM bookmarks WHERE user_id = ? AND post_id = ?").get(userId, postId);
+export async function isSaved(userId: number, postId: number): Promise<boolean> {
+  const sql = await db();
+  const rows = await sql`SELECT 1 FROM bookmarks WHERE user_id = ${userId} AND post_id = ${postId}`;
+  return rows.length > 0;
 }
 
 /** Returns the new saved state. */
-export function toggleSaved(userId: number, postId: number): boolean {
-  if (isSaved(userId, postId)) {
-    db.prepare("DELETE FROM bookmarks WHERE user_id = ? AND post_id = ?").run(userId, postId);
-    return false;
-  }
-  db.prepare("INSERT INTO bookmarks (user_id, post_id, created_at) VALUES (?, ?, ?)").run(
-    userId, postId, new Date().toISOString(),
-  );
+export async function toggleSaved(userId: number, postId: number): Promise<boolean> {
+  const sql = await db();
+  const removed = await sql`DELETE FROM bookmarks WHERE user_id = ${userId} AND post_id = ${postId} RETURNING 1`;
+  if (removed.length > 0) return false;
+  await sql`INSERT INTO bookmarks (user_id, post_id, created_at) VALUES (${userId}, ${postId}, ${new Date().toISOString()})
+            ON CONFLICT DO NOTHING`;
   return true;
 }
 
-export function listSaved(userId: number): Post[] {
-  const rows = db
-    .prepare(
-      `${SELECT} JOIN bookmarks b ON b.post_id = p.id
-       WHERE b.user_id = ? AND p.status = 'published' ORDER BY b.created_at DESC`,
-    )
-    .all(userId) as Row[];
-  return withTags(rows);
+export async function listSaved(userId: number): Promise<Post[]> {
+  const sql = await db();
+  const rows = await sql`
+    ${base(sql)} JOIN bookmarks b ON b.post_id = p.id
+    WHERE b.user_id = ${userId} AND p.status = 'published' ORDER BY b.created_at DESC`;
+  return withTags(sql, rows);
 }
 
-export function recordRead(userId: number, postId: number) {
+export async function recordRead(userId: number, postId: number) {
+  const sql = await db();
   const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO reading_history (user_id, post_id, first_read_at, last_read_at, read_count)
-     VALUES (?, ?, ?, ?, 1)
-     ON CONFLICT(user_id, post_id) DO UPDATE SET last_read_at = excluded.last_read_at, read_count = read_count + 1`,
-  ).run(userId, postId, now, now);
+  await sql`
+    INSERT INTO reading_history (user_id, post_id, first_read_at, last_read_at, read_count)
+    VALUES (${userId}, ${postId}, ${now}, ${now}, 1)
+    ON CONFLICT (user_id, post_id) DO UPDATE
+      SET last_read_at = EXCLUDED.last_read_at, read_count = reading_history.read_count + 1`;
 }
 
-export function listHistory(userId: number): (Post & { lastReadAt: string; readCount: number })[] {
-  const rows = db
-    .prepare(
-      `${SELECT} JOIN reading_history h ON h.post_id = p.id
-       WHERE h.user_id = ? AND p.status = 'published' ORDER BY h.last_read_at DESC LIMIT 100`,
-    )
-    .all(userId) as Row[];
-  const posts = withTags(rows);
-  const meta = db
-    .prepare("SELECT post_id, last_read_at, read_count FROM reading_history WHERE user_id = ?")
-    .all(userId) as { post_id: number; last_read_at: string; read_count: number }[];
-  const m = new Map(meta.map((x) => [x.post_id, x]));
-  return posts.map((p) => ({ ...p, lastReadAt: m.get(p.id)!.last_read_at, readCount: m.get(p.id)!.read_count }));
+export async function listHistory(userId: number): Promise<(Post & { lastReadAt: string; readCount: number })[]> {
+  const sql = await db();
+  const rows = await sql`
+    SELECT p.*, u.name AS author_name, h.last_read_at, h.read_count
+    FROM posts p
+    LEFT JOIN users u ON u.id = p.author_id
+    JOIN reading_history h ON h.post_id = p.id
+    WHERE h.user_id = ${userId} AND p.status = 'published'
+    ORDER BY h.last_read_at DESC LIMIT 100`;
+  const posts = await withTags(sql, rows);
+  return posts.map((p, i) => ({ ...p, lastReadAt: rows[i].last_read_at, readCount: rows[i].read_count }));
 }
 
-export function clearHistory(userId: number) {
-  db.prepare("DELETE FROM reading_history WHERE user_id = ?").run(userId);
+export async function clearHistory(userId: number) {
+  const sql = await db();
+  await sql`DELETE FROM reading_history WHERE user_id = ${userId}`;
 }

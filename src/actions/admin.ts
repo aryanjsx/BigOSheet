@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ADMIN_EMAIL, db } from "@/lib/db";
+import { deleteUser } from "@/lib/users";
 import { requireAdmin } from "@/lib/auth";
 import { renderMarkdown } from "@/lib/markdown";
 import {
@@ -38,11 +38,11 @@ export async function savePostAction(_: FormState, form: FormData): Promise<Form
   const idRaw = str(form, "id", 12);
   let id: number;
   if (idRaw) {
-    const updated = updatePost(Number(idRaw), input);
+    const updated = await updatePost(Number(idRaw), input);
     if (!updated) return { error: "That post no longer exists." };
     id = updated.id;
   } else {
-    id = createPost(admin.id, input).id;
+    id = (await createPost(admin.id, input)).id;
   }
   revalidatePath("/", "layout");
   redirect(`/admin/${id}/edit?saved=${publish ? "published" : "draft"}`);
@@ -51,7 +51,7 @@ export async function savePostAction(_: FormState, form: FormData): Promise<Form
 export async function deletePostAction(form: FormData) {
   await requireAdmin();
   const id = Number(form.get("id"));
-  if (Number.isInteger(id) && getPostById(id)) deletePost(id);
+  if (Number.isInteger(id) && (await getPostById(id))) await deletePost(id);
   revalidatePath("/", "layout");
   redirect("/admin");
 }
@@ -59,13 +59,7 @@ export async function deletePostAction(form: FormData) {
 export async function deleteUserAction(form: FormData) {
   const admin = await requireAdmin();
   const id = Number(form.get("id"));
-  const target = db.prepare("SELECT id, email, role FROM users WHERE id = ?").get(id) as
-    | { id: number; email: string; role: string }
-    | undefined;
-  // Never let the owner delete themselves or another admin.
-  if (target && target.id !== admin.id && target.role !== "admin" && target.email !== ADMIN_EMAIL) {
-    db.prepare("DELETE FROM users WHERE id = ?").run(id); // cascades sessions, saves, history
-  }
+  if (Number.isInteger(id)) await deleteUser(id, admin.id); // admins are protected inside
   revalidatePath("/admin/users");
 }
 

@@ -1,42 +1,30 @@
 {
-  "name": "bigosheet",
-  "version": "2.0.0",
+  "name": "bigosheet-blog",
+  "version": "1.0.0",
   "private": true,
-  "description": "Interactive Big O cheat sheet for DSA and coding interviews, built with Next.js.",
-  "license": "MIT",
-  "author": "Aryan Kumar (https://github.com/aryanjsx)",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/aryanjsx/BigOSheet.git"
-  },
-  "homepage": "https://bigosheet.aryankr.in/",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/flatten-prefetch.mjs",
-    "start": "npx serve@latest out",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "validate": "vitest run tests/content.test.ts",
-    "check-links": "node scripts/check-links.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run check-links"
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "^16.4.3",
+    "bcryptjs": "^3.0.3",
+    "marked": "^18.2.0",
+    "next": "^16.4.6",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "sanitize-html": "^2.18.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.3",
-    "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "@types/sanitize-html": "^2.16.2",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,243 +1,59 @@
 import Link from "next/link";
-import HomeProgress from "@/components/home/HomeProgress";
-import HomeSearch from "@/components/home/HomeSearch";
-import LegacyLinks from "@/components/home/LegacyLinks";
-import { ENTRIES } from "@/data/entries";
-import { LOOKUP } from "@/data/lookup";
-import { complexityColor } from "@/lib/complexity";
-import { CURVES, fmtDuration } from "@/lib/growth";
-import { pageMeta } from "@/lib/meta";
-import { GITHUB_URL, NAV, TOPICS_PAGE, topicHref } from "@/lib/routes";
-import { asset } from "@/lib/utils";
+import PostCard from "@/components/PostCard";
+import { listPublished, listTags } from "@/lib/posts";
+import { getUser } from "@/lib/auth";
 
-export const metadata = {
-  ...pageMeta(
-    "Big O cheat sheet: time and space complexity",
-    "Interactive Big O cheat sheet for coding interviews: time and space complexity of data structures, sorting, and graph algorithms, with a quiz and visualizer.",
-    "./",
-  ),
-  title: { absolute: "Big O cheat sheet: time and space complexity | BigOSheet" },
-};
-
-const FAQS = [
-  {
-    question: "What is Big O notation?",
-    answer:
-      "Big O notation describes an upper bound on how an algorithm's resource use grows with input size. It ignores constant factors and lower-order terms, so O(n) describes linear growth even if one implementation is several times faster than another.",
-  },
-  {
-    question: "What is the difference between time and space complexity?",
-    answer:
-      "Time complexity describes how the number of operations grows as the input grows. Space complexity describes how memory use grows; this sheet reports auxiliary space separately from the input unless a table says otherwise.",
-  },
-  {
-    question: "What is the time complexity of quicksort?",
-    answer:
-      "Quicksort is Θ(n log n) in the best and average cases and O(n²) in the worst case, when partitions are repeatedly very uneven. Its recursion stack is typically O(log n), but can reach O(n) in the worst case.",
-  },
-  {
-    question: "What is the time complexity of merge sort?",
-    answer:
-      "Merge sort takes Θ(n log n) time in its best, average, and worst cases. Array implementations generally need Θ(n) auxiliary space for merging.",
-  },
-  {
-    question: "What is the time complexity of binary search?",
-    answer:
-      "Binary search takes O(log n) time on sorted data that supports efficient random access. The iterative version uses O(1) auxiliary space; a recursive version uses O(log n) stack space.",
-  },
-  {
-    question: "Which common complexity classes should I know?",
-    answer:
-      "Know constant O(1), logarithmic O(log n), linear O(n), linearithmic O(n log n), quadratic O(n²), and exponential O(2ⁿ). Their relative practicality depends on input size and the work each step performs.",
-  },
-  {
-    question: "What are the average and worst-case costs of a hash table?",
-    answer:
-      "Lookup, insertion, and deletion are typically O(1) on average under suitable hashing and load-factor assumptions. A worst-case operation can be O(n) if many keys collide.",
-  },
-  {
-    question: "What does amortized time complexity mean?",
-    answer:
-      "An amortized bound averages the cost across a sequence of operations, without assuming random input. For example, a dynamic-array append is O(1) amortized even though a resizing append can take O(n).",
-  },
-];
-
-const N = 1_000_000;
-
-// The costs people get asked about most, by row name in data/lookup.ts.
-const MOST_ASKED = [
-  "Hash table lookup, insert, delete",
-  "Binary search",
-  "Binary heap pop",
-  "Merge sort",
-  "Quicksort",
-  "Breadth-first search",
-  "Dijkstra shortest path",
-  "Union-Find find and union",
-].map((name) => LOOKUP.find((r) => r.name === name)!);
-
-export default function Home() {
+export default async function Home() {
+  const [posts, tags, user] = [listPublished({ limit: 6 }), listTags(), await getUser()];
   return (
     <>
-      <LegacyLinks />
-      <section className="hero" aria-labelledby="home-title">
-        <div>
-          <p className="eyebrow">Big O reference for coding interviews</p>
-          <h1 id="home-title">Time and space complexity, with the fine print.</h1>
-          <p className="lede">
-            {ENTRIES.length} data structures, algorithms, and patterns. Every bound says whether it is average, amortized, or
-            worst case, and what it assumes.
+      <section className="hero">
+        <div className="container">
+          <p className="eyebrow">Coding, minus the confusion</p>
+          <h1>Learn how computers think, <span className="accent">in plain English.</span></h1>
+          <p className="lead">
+            Short, friendly articles on data structures, algorithms and everyday tech. Explained with
+            real-life examples, so you never need a computer science degree to follow along.
           </p>
-          <HomeSearch />
-          <p className="hero-links">
-            <Link href="/revision/">One-page revision sheet</Link>
-            <Link href="/roadmap/">Where to start</Link>
-            <a href={asset("/Big-O-Sheet.pdf")} download>
-              Download the PDF
-            </a>
-          </p>
-        </div>
-
-        <aside className="scale-card" aria-labelledby="scale-title">
-          <h2 id="scale-title">One million items</h2>
-          <p>Operation count divided by an assumed 10⁸ simple operations a second. An estimate, not a benchmark.</p>
-          <table>
-            <caption>Illustrative time for common operation-count growth rates at n = 1,000,000</caption>
-            <tbody>
-              {CURVES.map((c) => (
-                <tr key={c.key}>
-                  <th scope="row">
-                    <code className={c.cls}>{c.label}</code>
-                  </th>
-                  <td>{fmtDuration(c.l(N))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="scale-note">
-            That gap is the whole point. <Link href="/basics/">Try other sizes in the playground</Link>.
-          </p>
-        </aside>
-      </section>
-
-      <HomeProgress />
-
-      <section className="home-section" aria-labelledby="index-title">
-        <h2 id="index-title">What&apos;s here</h2>
-        <div className="index-grid">
-          {NAV.map((group) => {
-            const links = group.label === "Reference" ? [TOPICS_PAGE, ...group.links] : group.links;
-            return (
-              <div key={group.label}>
-                <h3>{group.label}</h3>
-                <ol className="index-list">
-                  {links.map((l) => (
-                    <li key={l.href}>
-                      <span>
-                        <Link href={l.href}>{l.label}</Link>
-                        <p>{l.blurb}</p>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            );
-          })}
+          <div className="row gap center-on-mobile">
+            <Link href="/blog" className="btn btn-primary btn-lg">Start reading</Link>
+            {!user && <Link href="/signup" className="btn btn-outline btn-lg">Create a free account</Link>}
+            {user && <Link href="/library" className="btn btn-outline btn-lg">Go to my library</Link>}
+          </div>
         </div>
       </section>
 
-      <section className="home-section" aria-labelledby="asked-title">
-        <h2 id="asked-title">The ones you will be asked about</h2>
-        <p>If you only memorize eight lines, make it these. Each links to the full explanation, and the <Link href="/lookup/">lookup</Link> has the assumptions.</p>
-        <div className="table-wrap" role="region" aria-label="Most asked complexities" tabIndex={0}>
-          <table className="table">
-            <caption>Best-known, average, and worst-case time complexity for common DSA operations</caption>
-            <thead>
-              <tr>
-                <th scope="col">Operation</th>
-                <th scope="col">Average</th>
-                <th scope="col">Worst</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MOST_ASKED.map((r) => (
-                <tr key={r.name}>
-                  <td>{r.entry ? <Link href={topicHref(r.entry)}>{r.name}</Link> : r.name}</td>
-                  <td>
-                    <code className={complexityColor(r.avg)}>{r.avg}</code>
-                  </td>
-                  <td>
-                    <code className={complexityColor(r.worst)}>{r.worst}</code>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="container section">
+        <div className="section-head">
+          <h2>Latest articles</h2>
+          <Link href="/blog">See all →</Link>
         </div>
-        <p className="footnotes">
-          The hash table worst case assumes many keys collide. Quicksort hits O(n²) when the pivot keeps splitting badly, such
-          as a first-element pivot on sorted input. The colors match the strip at the top of every page: green is cheapest,
-          dark red is exponential.
-        </p>
+        {posts.length === 0 ? (
+          <p className="muted">No articles yet. Check back soon!</p>
+        ) : (
+          <div className="grid">{posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
+        )}
       </section>
 
-      <section className="home-section" aria-labelledby="big-o-intro-title">
-        <h2 id="big-o-intro-title">What is Big O notation?</h2>
-        <p>
-          Big O notation describes how an algorithm&apos;s time or memory use grows as its input grows. It abstracts away
-          machine-specific constants and lower-order terms to make the growth rate easier to compare. For example, an
-          O(n log n) sort generally scales better than an O(n²) sort on large inputs, though real performance also depends
-          on implementation and data.
-        </p>
-        <h3>Time vs. space complexity</h3>
-        <p>
-          <strong>Time complexity</strong> counts how an algorithm&apos;s work grows; <strong>space complexity</strong>{" "}
-          describes memory growth. Tables here call out auxiliary space so you can distinguish extra working memory from
-          the input itself. Bounds are labeled best, average, amortized, or worst case and include assumptions where they
-          change the answer. Read the <Link href="/basics/">Big O notation guide</Link> for growth-rate definitions, or
-          compare <Link href="/sorting/">sorting algorithm time and space</Link> and{" "}
-          <Link href="/data-structures/">data structure operation complexity</Link>.
-        </p>
-        <h3>Common complexity classes</h3>
-        <ul className="complexity-list">
-          <li><code>O(1)</code> constant: work does not grow with input size.</li>
-          <li><code>O(log n)</code> logarithmic: work grows slowly, as in binary search.</li>
-          <li><code>O(n)</code> linear: work grows with the number of items.</li>
-          <li><code>O(n log n)</code> linearithmic: common for efficient comparison sorting.</li>
-          <li><code>O(n²)</code> quadratic: often comes from comparing every pair of items.</li>
-          <li><code>O(2ⁿ)</code> exponential: can arise when exploring every subset.</li>
-        </ul>
-      </section>
-
-      <section className="home-section" aria-labelledby="faq-title">
-        <h2 id="faq-title">Big O cheat sheet: frequently asked questions</h2>
-        <div className="faq-list">
-          {FAQS.map(({ question, answer }) => (
-            <details key={question}>
-              <summary>{question}</summary>
-              <p>{answer}</p>
-            </details>
-          ))}
+      <section className="container section">
+        <h2>How it works</h2>
+        <div className="grid-3">
+          <div className="card feature"><div className="card-emoji" aria-hidden="true">📖</div><h3>Read at your pace</h3><p className="muted">Every article starts with a one-line summary, then walks through the idea step by step.</p></div>
+          <div className="card feature"><div className="card-emoji" aria-hidden="true">⭐</div><h3>Save for later</h3><p className="muted">Log in to bookmark articles you want to come back to.</p></div>
+          <div className="card feature"><div className="card-emoji" aria-hidden="true">🕘</div><h3>Pick up where you left off</h3><p className="muted">Your reading history is kept in your library, so you never lose your place.</p></div>
         </div>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: FAQS.map(({ question, answer }) => ({
-                "@type": "Question",
-                name: question,
-                acceptedAnswer: { "@type": "Answer", text: answer },
-              })),
-            }).replace(/</g, "\\u003c"),
-          }}
-        />
       </section>
 
-      <p className="home-note">
-        Found a bound that looks wrong? <a href={GITHUB_URL + "/issues"}>Open an issue</a> with a source, and it gets fixed.
-      </p>
+      {tags.length > 0 && (
+        <section className="container section">
+          <h2>Browse by topic</h2>
+          <div className="chips big">
+            {tags.map((t) => (
+              <Link key={t.tag} href={`/blog?tag=${encodeURIComponent(t.tag)}`} className="chip chip-link">#{t.tag} <span className="muted">{t.count}</span></Link>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

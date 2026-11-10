@@ -1,0 +1,52 @@
+import { requireAdmin } from "@/lib/auth";
+import ConfirmButton from "@/components/ConfirmButton";
+import { deleteUserAction } from "@/actions/admin";
+import { db } from "@/lib/db";
+import { formatDate } from "@/lib/format";
+
+type Row = { id: number; name: string; email: string; role: string; created_at: string; saved: number; reads: number };
+
+export default async function AdminUsers() {
+  await requireAdmin();
+  const users = db
+    .prepare(
+      `SELECT u.id, u.name, u.email, u.role, u.created_at,
+         (SELECT COUNT(*) FROM bookmarks b WHERE b.user_id = u.id) AS saved,
+         (SELECT COUNT(*) FROM reading_history h WHERE h.user_id = u.id) AS reads
+       FROM users u ORDER BY u.created_at DESC`,
+    )
+    .all() as Row[];
+
+  return (
+    <>
+      <h1>Users ({users.length})</h1>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Saved</th><th>Read</th><th></th></tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id}>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td><span className={`chip ${u.role === "admin" ? "chip-live" : ""}`}>{u.role}</span></td>
+                <td>{formatDate(u.created_at)}</td>
+                <td>{u.saved}</td>
+                <td>{u.reads}</td>
+                <td className="actions">
+                  {u.role !== "admin" && (
+                    <form action={deleteUserAction}>
+                      <input type="hidden" name="id" value={u.id} />
+                      <ConfirmButton className="btn btn-danger" message={`Delete ${u.email} and all their saved articles and history?`}>Delete</ConfirmButton>
+                    </form>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

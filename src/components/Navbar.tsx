@@ -10,8 +10,7 @@ export default async function Navbar() {
     <header className="navbar">
       <div className="container nav-inner">
         <Link href="/" className="brand" aria-label="BigOSheet home">
-          <span className="brand-mark" aria-hidden="true">O(n)</span>
-          <span>BigOSheet</span>
+          <span className="brand-word">BigO<em>Sheet</em></span>
         </Link>
 
         <nav className="nav-links" aria-label="Main">

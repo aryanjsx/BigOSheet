@@ -1,74 +1,69 @@
 # BigOSheet
 
-Two things in one site:
+**Learn how computers think, in plain English.**
 
-- **A blog** for coding and DSA explained in plain English, with accounts, a personal library (saved and recently read) and an owner-only writing dashboard.
-- **The Big O cheat sheet**: complexity tables for 34 data structures, algorithms and patterns, a growth playground, an algorithm visualizer, a quiz, code challenges, comparison and lookup tools, a roadmap with saved progress, and printable PDFs.
+BigOSheet is a place to understand data structures and algorithms without needing a computer science degree, and to look up the details when you do need them. It pairs a friendly blog with a complete, interactive Big O cheat sheet.
 
-Both share one navbar, footer, theme (light and dark) and design.
+## Why it exists
 
-**Stack:** Next.js (App Router) · Postgres (`postgres` driver) · bcrypt passwords · server-side sessions. Runs on Vercel.
+Most coding resources are written for people who already know the jargon. Most reference sheets give you a table of symbols and no explanation. BigOSheet tries to do both jobs well:
 
-## Run it locally
+- **For curious beginners:** short articles that start with an everyday picture, like a treasure hunt for linked lists or a phone book for binary search, then build up to the code.
+- **For interview prep and quick lookups:** a reference where every bound says whether it is best, average, amortized or worst case, and what it assumes.
+
+## What you can do
+
+### Read articles that make sense
+
+- Every article opens with a one-line **"In plain English"** summary.
+- Each one is tagged for who it suits: no tech background, a little curiosity, or a deep dive.
+- Search by keyword or browse by subject.
+- **Log in to save articles** for later and pick up where you left off. Your library keeps both your saved and recently read articles.
+
+### Use the Big O cheat sheet
+
+- **34 topics** covering data structures, sorting, searching, graphs, trees, heaps and coding patterns. Each has its own page with time and space costs, pitfalls and code in several languages.
+- **Reference tables** for basics, data structures, sorting, and search and graph algorithms, colour-coded from cheapest (green) to exponential (dark red).
+- **Algorithm visualizer** that steps through linear and binary search, bubble, insertion, merge and quick sort, and BFS and DFS, one move at a time, with live counters.
+- **Growth playground** to see how O(1), O(log n), O(n) and O(n²) pull apart as the input grows.
+- **Compare and lookup tools** for putting two algorithms side by side or finding the cost of one operation fast.
+- **Practice:** a roadmap with a suggested learning order, a quiz, code challenges where you predict the complexity of a snippet, and a one-page revision sheet.
+- **Take it with you:** export the tables as Markdown or CSV, print topic cards, or download the PDFs.
+- Your learning progress, bookmarks and quiz scores are saved in your own browser, with no account needed.
+
+### Feel good doing it
+
+A calm, editorial design with serif headlines, generous spacing and a single accent colour. It works in light and dark mode, on phones and desktops, and the cheat sheet is keyboard friendly (press `?` for shortcuts).
+
+## For the site owner
+
+One account, set by `ADMIN_EMAIL`, can write, draft, publish and delete articles and manage users. That account is created from a password you set on the server and can't be claimed through the signup form. Everyone else signs up as a regular reader.
+
+Article web addresses come straight from the title: "Singly Linkedlist" lives at `/singlylinkedlist`.
+
+## Run it yourself
+
+You need Node 22.13 or newer.
 
 ```bash
 npm install
-cp .env.example .env.local   # on Windows PowerShell, use: Copy-Item .env.example .env.local
-npm run db:local             # terminal 1: throwaway local Postgres, no install needed
+cp .env.example .env.local   # on Windows PowerShell: Copy-Item .env.example .env.local
+npm run db:local             # terminal 1: a throwaway local Postgres, no install needed
 npm run dev                  # terminal 2
 ```
 
-After copying the example, edit `.env.local` and set `ADMIN_PASSWORD`. For local development, set `DATABASE_URL` to the URL printed by `npm run db:local`. The local PGlite server must keep running in terminal 1 while the app is in use.
+Open `.env.local` and set `ADMIN_PASSWORD`. For local work, set `DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres`. The first request creates the tables, the admin account and three sample articles.
 
-For local development use `DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres`. Tables, the admin account and three sample articles are created automatically on the first request.
+To deploy, use any host that runs Next.js and point `DATABASE_URL` at a Postgres database. Set `ADMIN_PASSWORD`, `ADMIN_EMAIL` and `SITE_URL` in the host's environment, and never commit `.env.local`.
 
-## Routes
+## Built with
 
-| Route | Who | What |
-| --- | --- | --- |
-| `/` | everyone | Home: hero, latest posts, the cheat sheet, tags |
-| `/blog` | everyone | All published posts, search, `?tag=` filter |
-| `/<slug>` | everyone (drafts: admin only) | An article, e.g. "Singly Linkedlist" lives at `/singlylinkedlist` |
-| `/login`, `/signup` | guests | Authentication |
-| `/library` | logged in | Saved posts and reading history |
-| `/admin` | admin | All posts (draft and published), edit, delete |
-| `/admin/new`, `/admin/[id]/edit` | admin | Editor with draft, publish, preview |
-| `/admin/users` | admin | List and delete users |
-| `/topics`, `/topics/[id]` | everyone | All 34 topics with search and filters, and a page for each |
-| `/basics`, `/data-structures`, `/sorting`, `/algorithms`, `/patterns` | everyone | Reference tables |
-| `/lookup`, `/compare`, `/visualizer`, `/export` | everyone | Tools |
-| `/roadmap`, `/quiz`, `/challenges`, `/revision` | everyone | Practice (progress is saved in the browser) |
+Next.js (App Router), TypeScript, Postgres, and Vitest for the cheat-sheet data checks (`npm test`).
 
-The cheat-sheet pages live in `src/app/(sheet)/`, their data in `src/data/`, and their styles in `src/app/sheet.css`, scoped under a `.sheet` class so they never affect the blog. Add a page to `src/lib/routes.ts` and it appears in the navbar, footer and home page.
+## Contributing
 
-```bash
-npm test      # validates the cheat-sheet data, routes, growth maths and visualizer
-```
+Found a bound that looks wrong, or want to add a topic? Open an issue with a source, or read [CONTRIBUTING.md](CONTRIBUTING.md). Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Slugs are the title in lowercase with only letters and digits. Collisions or reserved words (`admin`, `blog`, `login`…) get a number suffix. A slug is frozen once a post is published, so shared links never break.
+## Licence
 
-## Database schema
-
-Tables are created automatically (`CREATE TABLE IF NOT EXISTS`, guarded by an advisory lock so concurrent cold starts are safe).
-
-```
-users(id, email UNIQUE (lowercase), name, password_hash, role 'user'|'admin', created_at)
-sessions(token_hash PK, user_id → users, expires_at)
-posts(id, slug UNIQUE, title, excerpt, tldr, content, emoji, level, status 'draft'|'published',
-      author_id → users, reading_minutes, created_at, updated_at, published_at)
-post_tags(post_id → posts, tag)                       PK(post_id, tag)
-bookmarks(user_id → users, post_id → posts, created_at)           PK(user_id, post_id)
-reading_history(user_id → users, post_id → posts,
-                first_read_at, last_read_at, read_count)          PK(user_id, post_id)
-login_failures(key PK, n, until_ms)                   throttle for repeated bad logins
-meta(key, value)
-```
-
-Deleting a user cascades to their sessions, saves and history. Deleting a post cascades to tags, saves and history.
-
-## Authorization
-
-- The admin is the account whose email equals `ADMIN_EMAIL` (`kumararyan1929@gmail.com`).
-- That account is created at startup from `ADMIN_PASSWORD` and **cannot be claimed through the signup form**. Without this, anyone could register that email first and become admin, because emails are not verified.
-- `/admin/*` pages and every admin server action call `requireAdmin()` on their own. Hiding a button is never the only protection.
-- Admins cannot delete themselves or other admins.
+MIT. See [LICENSE](LICENSE).

@@ -1,6 +1,11 @@
-# BigOSheet blog
+# BigOSheet
 
-A blog for coding and DSA explained in plain English, with accounts, a personal library (saved and recently read) and an owner-only writing dashboard.
+Two things in one site:
+
+- **A blog** for coding and DSA explained in plain English, with accounts, a personal library (saved and recently read) and an owner-only writing dashboard.
+- **The Big O cheat sheet**: complexity tables for 34 data structures, algorithms and patterns, a growth playground, an algorithm visualizer, a quiz, code challenges, comparison and lookup tools, a roadmap with saved progress, and printable PDFs.
+
+Both share one navbar, footer, theme (light and dark) and design.
 
 **Stack:** Next.js (App Router) · Postgres (`postgres` driver) · bcrypt passwords · server-side sessions. Runs on Vercel.
 
@@ -21,7 +26,7 @@ For local development use `DATABASE_URL=postgres://postgres:postgres@localhost:5
 
 | Route | Who | What |
 | --- | --- | --- |
-| `/` | everyone | Home: hero, latest posts, topics |
+| `/` | everyone | Home: hero, latest posts, the cheat sheet, tags |
 | `/blog` | everyone | All published posts, search, `?tag=` filter |
 | `/<slug>` | everyone (drafts: admin only) | An article, e.g. "Singly Linkedlist" lives at `/singlylinkedlist` |
 | `/login`, `/signup` | guests | Authentication |
@@ -29,6 +34,16 @@ For local development use `DATABASE_URL=postgres://postgres:postgres@localhost:5
 | `/admin` | admin | All posts (draft and published), edit, delete |
 | `/admin/new`, `/admin/[id]/edit` | admin | Editor with draft, publish, preview |
 | `/admin/users` | admin | List and delete users |
+| `/topics`, `/topics/[id]` | everyone | All 34 topics with search and filters, and a page for each |
+| `/basics`, `/data-structures`, `/sorting`, `/algorithms`, `/patterns` | everyone | Reference tables |
+| `/lookup`, `/compare`, `/visualizer`, `/export` | everyone | Tools |
+| `/roadmap`, `/quiz`, `/challenges`, `/revision` | everyone | Practice (progress is saved in the browser) |
+
+The cheat-sheet pages live in `src/app/(sheet)/`, their data in `src/data/`, and their styles in `src/app/sheet.css`, scoped under a `.sheet` class so they never affect the blog. Add a page to `src/lib/routes.ts` and it appears in the navbar, footer and home page.
+
+```bash
+npm test      # validates the cheat-sheet data, routes, growth maths and visualizer
+```
 
 Slugs are the title in lowercase with only letters and digits. Collisions or reserved words (`admin`, `blog`, `login`…) get a number suffix. A slug is frozen once a post is published, so shared links never break.
 

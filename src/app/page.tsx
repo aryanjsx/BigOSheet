@@ -1,5 +1,7 @@
 import Link from "next/link";
 import PostCard from "@/components/PostCard";
+import CheatSheetHome from "@/components/home/CheatSheetHome";
+import LegacyLinks from "@/components/home/LegacyLinks";
 import { LEVEL_LABEL, listPublished, listTags } from "@/lib/posts";
 import { getUser } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
@@ -9,6 +11,7 @@ export default async function Home() {
   const [featured, ...rest] = posts;
   return (
     <>
+      <LegacyLinks />
       <section className="hero">
         <div className="container">
           <p className="eyebrow">Coding, minus the confusion</p>
@@ -55,8 +58,10 @@ export default async function Home() {
         )}
       </section>
 
+      <CheatSheetHome />
+
       <section className="container section">
-        <div className="section-head"><h2>How it works</h2></div>
+        <div className="section-head"><h2>How the articles work</h2></div>
         <div className="grid-3">
           <div className="feature"><span className="step-num">i.</span><h3>Read at your pace</h3><p>Every article starts with a one-line summary, then walks through the idea step by step.</p></div>
           <div className="feature"><span className="step-num">ii.</span><h3>Save for later</h3><p>Log in to bookmark the articles you want to come back to.</p></div>
@@ -66,7 +71,7 @@ export default async function Home() {
 
       {tags.length > 0 && (
         <section className="container section">
-          <div className="section-head"><h2>Browse by topic</h2></div>
+          <div className="section-head"><h2>Browse articles by subject</h2></div>
           <div className="chips big">
             {tags.map((t) => (
               <Link key={t.tag} href={`/blog?tag=${encodeURIComponent(t.tag)}`} className="chip chip-link">{t.tag} <span className="muted">{t.count}</span></Link>

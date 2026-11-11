@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "db:local": "node scripts/dev-db.mjs"
+    "db:local": "node scripts/dev-db.mjs",
+    "test": "vitest run",
+    "validate": "vitest run tests/content.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -29,6 +31,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/sanitize-html": "^2.16.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }

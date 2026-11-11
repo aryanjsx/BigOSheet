@@ -12,7 +12,7 @@ export default async function AdminUsers() {
     <>
       <h1>Users ({users.length})</h1>
       <div className="table-wrap">
-        <table>
+        <table className="admin-table">
           <thead>
             <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Saved</th><th>Read</th><th></th></tr>
           </thead>

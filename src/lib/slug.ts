@@ -2,7 +2,9 @@
 export const RESERVED_SLUGS = new Set([
   "api", "admin", "login", "signup", "logout", "library", "blog", "about",
   "tag", "tags", "static", "public", "new", "edit", "robots", "sitemap",
-  "favicon", "icon", "_next",
+  "favicon", "icon", "_next", "algorithms", "basics", "challenges", "compare",
+  "data-structures", "export", "lookup", "patterns", "quiz", "revision", "roadmap", "sorting",
+  "topics", "visualizer", "og", "social-preview", "apple-touch-icon",
 ]);
 
 /** "Singly Linkedlist" -> "singlylinkedlist" (letters and digits only). */

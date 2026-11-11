@@ -1,0 +1,22 @@
+# BigOSheet
+
+> A free, static Big O cheat sheet for time and space complexity in data structures, algorithms, and coding interview patterns.
+
+The site publishes its reference content as server-rendered, crawlable HTML and is available at https://bigosheet.aryankr.in/.
+
+## Main reference pages
+
+- [Big O basics](https://bigosheet.aryankr.in/basics/): notation, growth rates, and complexity cases.
+- [Data structure complexity](https://bigosheet.aryankr.in/data-structures/): operation costs for common structures and graph representations.
+- [Sorting algorithm complexity](https://bigosheet.aryankr.in/sorting/): best, average, and worst-case time and auxiliary space.
+- [Search and graph algorithms](https://bigosheet.aryankr.in/algorithms/): search, traversal, shortest paths, and spanning trees.
+- [All topics](https://bigosheet.aryankr.in/topics/): explanations, code, caveats, and references.
+- [Complexity lookup](https://bigosheet.aryankr.in/lookup/): operation-level best, average, and worst cases.
+
+## Additional resources
+
+- [Printable revision sheet](https://bigosheet.aryankr.in/revision/)
+- [PDF cheat sheet](https://bigosheet.aryankr.in/Big-O-Sheet.pdf)
+- [Source repository](https://github.com/aryanjsx/BigOSheet)
+
+Complexity bounds include their stated assumptions. They are asymptotic references, not benchmark results.

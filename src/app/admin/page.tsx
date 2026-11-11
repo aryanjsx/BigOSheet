@@ -15,7 +15,7 @@ export default async function AdminPosts() {
         <p className="muted">No posts yet. Write your first one!</p>
       ) : (
         <div className="table-wrap">
-          <table>
+          <table className="admin-table">
             <thead>
               <tr><th>Title</th><th>Status</th><th>Address</th><th>Updated</th><th></th></tr>
             </thead>

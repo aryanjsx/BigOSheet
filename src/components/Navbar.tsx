@@ -3,6 +3,8 @@ import { getUser } from "@/lib/auth";
 import { logoutAction } from "@/actions/auth";
 import ThemeToggle from "./ThemeToggle";
 import MenuButton from "./MenuButton";
+import SheetNav from "./SheetNav";
+import { TOPICS_PAGE } from "@/lib/routes";
 
 export default async function Navbar() {
   const user = await getUser();
@@ -14,8 +16,9 @@ export default async function Navbar() {
         </Link>
 
         <nav className="nav-links" aria-label="Main">
-          <Link href="/">Home</Link>
           <Link href="/blog">Articles</Link>
+          <Link href={TOPICS_PAGE.href}>Topics</Link>
+          <SheetNav />
           {user && <Link href="/library">My library</Link>}
           {user?.role === "admin" && <Link href="/admin">Write</Link>}
         </nav>

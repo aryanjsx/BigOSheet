@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { savePostAction } from "@/actions/admin";
 import { previewMarkdownAction } from "@/actions/admin";
 import type { Post } from "@/lib/posts";
+import EditorToolbar from "./EditorToolbar";
 
 const STARTER = `## The big idea
 
@@ -28,6 +29,7 @@ export default function PostEditor({ post }: { post?: Post }) {
   const [html, setHtml] = useState("");
   const [tab, setTab] = useState<"write" | "preview">("write");
   const seq = useRef(0);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (tab !== "preview") return;
@@ -79,8 +81,9 @@ export default function PostEditor({ post }: { post?: Post }) {
         <button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")}>Preview</button>
         <span className="muted">Markdown supported</span>
       </div>
+      {tab === "write" && <EditorToolbar textareaRef={contentRef} onValue={setContent} />}
       {/* Keep the textarea mounted so its value is always submitted. */}
-      <textarea name="content" className="editor-area" hidden={tab !== "write"} value={content} onChange={(e) => setContent(e.target.value)} rows={22} />
+      <textarea ref={contentRef} name="content" className="editor-area" hidden={tab !== "write"} value={content} onChange={(e) => setContent(e.target.value)} rows={22} />
       {tab === "preview" && <div className="prose card" dangerouslySetInnerHTML={{ __html: html }} />}
 
       {state?.error && <p className="form-error" role="alert">{state.error}</p>}

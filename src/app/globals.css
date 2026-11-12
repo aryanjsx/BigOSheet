@@ -297,3 +297,14 @@ textarea { resize: vertical; }
   .icon-btn { width: 34px; height: 34px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- Editor formatting toolbar ---------- */
+.md-toolbar { position: sticky; top: 72px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; padding: 0.35rem 0.5rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px 10px 0 0; margin-bottom: -1.25rem; }
+.tb-btn { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 0.4rem; background: none; border: 0; border-radius: 6px; color: var(--text); font: 600 0.95rem/1 var(--sans); cursor: pointer; transition: background 0.12s; }
+.tb-btn:hover { background: var(--surface-2); }
+.tb-btn:active { background: var(--border); }
+.tb-sep { width: 1px; height: 20px; background: var(--border-strong); margin: 0 0.3rem; }
+.md-toolbar .tb-select { width: auto; min-width: 8.5rem; height: 34px; padding: 0 0.5rem; border: 0; border-radius: 6px; background: none; color: var(--text); font: 500 0.9rem var(--sans); cursor: pointer; box-shadow: none; }
+.md-toolbar .tb-select:hover { background: var(--surface-2); }
+.md-toolbar + .editor-area { border-top-left-radius: 0; border-top-right-radius: 0; padding-top: 1.1rem; }
+@media (max-width: 1000px) { .md-toolbar { top: 64px; } }

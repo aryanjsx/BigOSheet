@@ -10,7 +10,7 @@ export function renderMarkdown(source: string): string {
   return sanitizeHtml(raw, {
     allowedTags: [
       ...sanitizeHtml.defaults.allowedTags,
-      "h1", "h2", "img", "del", "details", "summary",
+      "h1", "h2", "img", "del", "u", "details", "summary",
     ],
     allowedAttributes: {
       a: ["href", "title"],
